@@ -1,0 +1,78 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 30px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+form .form-group {
+  margin-bottom: 15px;
+}
+form label {
+  display: block;
+  margin-bottom: 5px;
+}
+form input[type="text"],
+form input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+button {
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+button:hover {
+  background: #218838;
+}
+#preview {
+  margin-top: 20px;
+}
+.card {
+  width: 350px;
+  height: 200px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  position: relative;
+  background: white;
+}
+.card .photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+.card .photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card .info {
+  position: absolute;
+  top: 10px;
+  left: 100px;
+  right: 10px;
+}
+.card .info h2 {
+  margin: 0;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+.card .info p {
+  margin: 2px 0;
+  font-size: 12px;
+}
