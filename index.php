@@ -1,39 +1,71 @@
 <?php
 require 'config.php';
+
+$status = $_GET['status'] ?? '';
+$error = $_GET['error'] ?? '';
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Student ID Generator</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student ID Request</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="container">
-    <h1 style="text-align: center; text-decoration: underline;">COMPUTER SCIENCE STUDENTS ID CARD GENERATOR</h1>
-    <form action="process.php" method="post" enctype="multipart/form-data" id="studentForm">
-        <div class="form-group">
-            <label for="full_name">Full Name</label>
-            <input type="text" name="full_name" id="full_name" required>
-        </div>
-        <div class="form-group">
-            <label for="post">Post</label>
-            <input type="text" name="post" id="post" required>
-        </div>
-        <div class="form-group">
-            <label for="matric_no">Matric Number</label>
-            <input type="text" name="matric_no" id="matric_no" required>
-        </div>
-        <div class="form-group">
-            <label for="photo">Passport Photo</label>
-            <input type="file" name="photo" id="photo" accept="image/png, image/jpeg" required>
-        </div>
-        <button type="submit">Submit</button>
-    </form>
-    <div id="preview">
-        <!-- ID card preview goes here -->
-    </div>
-</div>
-<script src="assets/script.js"></script>
+    <main class="container">
+        <section class="card">
+            <h1>NACOS ID Card Form</h1>
+            <p class="muted">Fill your details correctly. Admin will generate your ID card from the dashboard.</p>
+
+            <?php if ($status === 'success'): ?>
+                <div class="alert success">Your details have been submitted successfully.</div>
+            <?php endif; ?>
+            <?php if ($error !== ''): ?>
+                <div class="alert error"><?= e($error) ?></div>
+            <?php endif; ?>
+
+            <form action="process.php" method="post" enctype="multipart/form-data" id="studentForm" novalidate>
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name" required maxlength="255" placeholder="Surname Firstname Middlename">
+
+                <label for="level">Level</label>
+                <select id="level" name="level" required>
+                    <option value="">Select level</option>
+                    <option value="100">100 Level</option>
+                    <option value="200">200 Level</option>
+                    <option value="300">300 Level</option>
+                    <option value="400">400 Level</option>
+                </select>
+
+                <label for="matric_no">Matric Number</label>
+                <input type="text" id="matric_no" name="matric_no" required maxlength="100" placeholder="e.g. 230303010052">
+
+                <label for="image">Passport Photograph</label>
+                <div class="upload-guide">
+                    <p class="upload-guide-title">Photo Instructions</p>
+                    <ol>
+                        <li>Upload a clear picture of yourself.</li>
+                        <li>Use a portrait photo showing from your shoulders to the top of your head.</li>
+                        <li>Your photo must have a transparent background.</li>
+                        <li>If your background is not transparent, use <a href="https://remove.bg" target="_blank" rel="noopener noreferrer">remove.bg</a>, then upload the transparent image.</li>
+                        <li>If you have issues uploading your image, contact your HOC or any of the NACOS Excos.</li>
+                    </ol>
+                </div>
+                <input type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                <p class="warning" id="imageWarning">Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB. Prefer transparent background.</p>
+                <img id="preview" class="preview" alt="Image preview" hidden>
+
+                <button type="submit">Submit Details</button>
+            </form>
+
+            <p class="admin-link"><a class="link-btn secondary" href="admin/login.php">Admin Dashboard</a></p>
+            <footer class="site-footer">
+                Built by <a href="https://tmb.it.com" target="_blank" rel="noopener noreferrer">TMB</a> and <a href="#">DEVMOH</a>
+            </footer>
+        </section>
+    </main>
+
+    <script src="assets/script.js"></script>
 </body>
-</html> 
+</html>

@@ -2,47 +2,58 @@
 require '../config.php';
 session_start();
 
-// hardcoded credentials (in real system, use a table)
-$admin_user = 'admin';
-$admin_pass = password_hash('password', PASSWORD_DEFAULT);
+if (!empty($_SESSION['admin_user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 
+$error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = $_POST['username'] ?? '';
-    $pass = $_POST['password'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($user === $admin_user && password_verify($pass, $admin_pass)) {
-        $_SESSION['admin'] = true;
+    $stmt = $pdo->prepare('SELECT * FROM admin_users WHERE username = ? LIMIT 1');
+    $stmt->execute([$username]);
+    $admin = $stmt->fetch();
+
+    if ($admin && password_verify($password, $admin['password_hash'])) {
+        $_SESSION['admin_user_id'] = $admin['id'];
+        $_SESSION['admin_username'] = $admin['username'];
         header('Location: dashboard.php');
         exit;
-    } else {
-        $error = 'Invalid credentials';
     }
+
+    $error = 'Invalid username or password.';
 }
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin Login</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
-<div class="container">
-    <h2>Admin Login</h2>
-    <?php if (!empty($error)): ?>
-        <p style="color:red;"><?=htmlspecialchars($error)?></p>
-    <?php endif; ?>
-    <form method="post">
-        <div class="form-group">
-            <label>Username</label>
-            <input type="text" name="username" required>
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
-</div>
+    <main class="container">
+        <section class="card small">
+            <h1>Admin Login</h1>
+            <div class="alert error">AUTHORIZED PERSONEL ONLY.</div>
+            <?php if ($error !== ''): ?>
+                <div class="alert error"><?= e($error) ?></div>
+            <?php endif; ?>
+            <form method="post">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+
+                <button type="submit">Login</button>
+            </form>
+            <p class="admin-link"><a class="link-btn secondary" href="../index.php">Back to Student Form</a></p>
+        </section>
+    </main>
 </body>
 </html>
+

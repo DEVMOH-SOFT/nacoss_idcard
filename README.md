@@ -1,19 +1,19 @@
-Student ID Card Generation System
+﻿# Student ID Card System
 
-This project provides a simple PHP/MySQL system for managing student ID cards.
+Student flow:
+- Open `index.php`
+- Fill full name, level (100-400), matric number, and upload photo (JPG/PNG/WEBP, max 2MB)
+- Record is stored in database
 
-Setup:
+Admin flow:
+- Open `admin/login.php`
+- Default account (auto-created if none): `admin` / `admin123`
+- Search by name or matric number
+- Filter by level
+- Edit student details including post and image
+- Generate ID cards one-by-one, selected students, by level, or all students
+- Download output directly (single PNG or ZIP for multiple)
 
-1. Copy the `student-id-system` folder into your XAMPP `htdocs` directory.
-2. Create a MySQL database named `student_id_system`.
-3. Run the provided SQL script (`db.sql`) to create the `students` table and database.
-   You can import it via phpMyAdmin or the MySQL command line:
-   ```sql
-   source /path/to/student-id-system/db.sql;
-   ```
-4. Visit `http://localhost/student-id-system` in your browser.
-
-**Notes:**
-
-- Place a TrueType font file (e.g. `arial.ttf` or `OpenSans-Regular.ttf`) in `assets/` for ID generation.
-- Ensure the `uploads/students` folder is writable by the web server.
+Notes:
+- Generated ID cards are not saved to database.
+- Template used for generation: `assets/Id_card_design.png`.

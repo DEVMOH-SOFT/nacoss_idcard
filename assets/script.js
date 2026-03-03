@@ -1,64 +1,130 @@
-document.getElementById("photo").addEventListener("change", function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function (evt) {
-    const img = new Image();
-    img.onload = function () {
-      // draw to canvas to ensure circle cropping
-      const canvas = document.createElement("canvas");
-      const size = 80;
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      // draw centered
-      let sx = 0,
-        sy = 0,
-        sSize = Math.min(img.width, img.height);
-      if (img.width > img.height) {
-        sx = (img.width - img.height) / 2;
-      } else {
-        sy = (img.height - img.width) / 2;
-      }
-      ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, size, size);
-      const dataUrl = canvas.toDataURL("image/png");
-      showPreview(dataUrl);
-    };
-    img.src = evt.target.result;
-  };
-  reader.readAsDataURL(file);
-});
+﻿(() => {
+    const imageInput = document.getElementById('image');
+    const preview = document.getElementById('preview');
+    const warning = document.getElementById('imageWarning');
+    const checkAll = document.getElementById('checkAll');
+    const checks = document.querySelectorAll('.studentCheck');
+    const studentForm = document.getElementById('studentForm');
 
-function showPreview(photoUrl) {
-  const fullName = document.getElementById("full_name").value;
-  const post = document.getElementById("post").value;
-  const matric = document.getElementById("matric_no").value;
+    if (imageInput && warning) {
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+            if (!file) {
+                if (preview) {
+                    preview.hidden = true;
+                    preview.removeAttribute('src');
+                }
+                warning.textContent = 'Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB. Prefer transparent background.';
+                warning.classList.remove('error-text');
+                return;
+            }
 
-  const previewDiv = document.getElementById("preview");
-  previewDiv.innerHTML = "";
-  const card = document.createElement("div");
-  card.className = "card";
-  const photoDiv = document.createElement("div");
-  photoDiv.className = "photo";
-  const img = document.createElement("img");
-  img.src = photoUrl;
-  photoDiv.appendChild(img);
-  card.appendChild(photoDiv);
-  const info = document.createElement("div");
-  info.className = "info";
-  info.innerHTML = `<h2>${fullName}</h2><p>${matric}</p><p>${post}</p>`;
-  card.appendChild(info);
-  previewDiv.appendChild(card);
-}
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            const tooLarge = file.size > (2 * 1024 * 1024);
+            const badType = !allowedTypes.includes(file.type);
 
-// update preview on field changes
-["full_name", "post", "matric_no"].forEach((id) => {
-  document.getElementById(id).addEventListener("input", function () {
-    const photoImg = document.querySelector("#preview .photo img");
-    if (photoImg) showPreview(photoImg.src);
-  });
-});
+            if (tooLarge || badType) {
+                warning.textContent = badType
+                    ? 'Invalid image type. Use JPG, JPEG, PNG, or WEBP.'
+                    : 'Image too large. Maximum size is 2MB.';
+                warning.classList.add('error-text');
+                imageInput.value = '';
+                if (preview) {
+                    preview.hidden = true;
+                    preview.removeAttribute('src');
+                }
+                return;
+            }
+
+            warning.textContent = 'Image selected: ' + file.name;
+            warning.classList.remove('error-text');
+
+            if (preview) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    preview.src = event.target.result;
+                    preview.hidden = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (checkAll && checks.length > 0) {
+        checkAll.addEventListener('change', () => {
+            checks.forEach((box) => {
+                box.checked = checkAll.checked;
+            });
+        });
+    }
+
+    if (studentForm) {
+        let confirmedSubmit = false;
+        const submitButton = studentForm.querySelector('button[type="submit"]');
+        const requiredFields = Array.from(studentForm.querySelectorAll('[required]'));
+
+        const isFieldFilled = (field) => {
+            if (field.type === 'file') {
+                return !!(field.files && field.files.length > 0);
+            }
+            return field.value.trim() !== '';
+        };
+
+        const refreshSubmitState = () => {
+            const allFilled = requiredFields.every((field) => isFieldFilled(field));
+            if (submitButton) {
+                submitButton.disabled = !allFilled;
+            }
+        };
+
+        requiredFields.forEach((field) => {
+            field.addEventListener('input', refreshSubmitState);
+            field.addEventListener('change', refreshSubmitState);
+        });
+        refreshSubmitState();
+
+        studentForm.addEventListener('submit', (event) => {
+            if (confirmedSubmit) {
+                return;
+            }
+
+            event.preventDefault();
+            refreshSubmitState();
+            if (submitButton && submitButton.disabled) {
+                return;
+            }
+
+            const fullName = (document.getElementById('full_name')?.value || '').trim();
+            const levelSelect = document.getElementById('level');
+            const levelText = levelSelect && levelSelect.selectedIndex >= 0
+                ? levelSelect.options[levelSelect.selectedIndex].text
+                : '';
+            const matricNo = (document.getElementById('matric_no')?.value || '').trim();
+            const imageName = imageInput && imageInput.files && imageInput.files[0]
+                ? imageInput.files[0].name
+                : 'No file selected';
+
+            const confirmationText = [
+                'Please confirm your details:',
+                '',
+                'Full Name: ' + (fullName || '-'),
+                'Level: ' + (levelText || '-'),
+                'Matric Number: ' + (matricNo || '-'),
+                'Photo: ' + imageName,
+                '',
+                'Click OK to confirm or Cancel to edit.'
+            ].join('\n');
+
+            if (!window.confirm(confirmationText)) {
+                return;
+            }
+
+            confirmedSubmit = true;
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Submitting...';
+            }
+            studentForm.submit();
+        });
+    }
+})();
