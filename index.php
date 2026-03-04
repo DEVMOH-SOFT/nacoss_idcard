@@ -15,8 +15,8 @@ $error = $_GET['error'] ?? '';
 <body>
     <main class="container">
         <section class="card">
-            <h1>NACOS ID Card Apll Form</h1>
-            <p class="muted">Ensure you fill in your accurate details to avoid any issues with your ID card.</p>
+            <h1>NACOS ID Card Application Form</h1>
+            <p class="muted">Ensure you fill in your accurate details to avoid any issues with your ID card and to avoid delay in processing your ID card.</p>
 
             <?php if ($status === 'success'): ?>
                 <div class="alert success">Your details have been submitted successfully.</div>
@@ -43,12 +43,36 @@ $error = $_GET['error'] ?? '';
 
                 <label for="image">Passport Photograph</label>
                 <div class="upload-guide" id="photoInstructionBox">
-                    <p class="upload-guide-title">Photo Instructions</p>
+                    <p class="upload-guide-title">Mandatory Photo Guidelines</p>
+                    
+                    <div class="photo-guidelines">
+                        <div class="guideline-item accepted">
+                            <img src="assets/accepted_male.png" alt="Accepted Male" class="guideline-img">
+                            <span class="guideline-label">ACCEPTED (M)</span>
+                            <p class="guideline-desc">Facing front, clear view.</p>
+                        </div>
+                        <div class="guideline-item accepted">
+                            <img src="assets/accepted_female.png" alt="Accepted Female" class="guideline-img">
+                            <span class="guideline-label">ACCEPTED (F)</span>
+                            <p class="guideline-desc">Facing front, clear view.</p>
+                        </div>
+                        <div class="guideline-item unaccepted">
+                            <img src="assets/unaccepted_side.png" alt="Side View" class="guideline-img">
+                            <span class="guideline-label">REJECTED</span>
+                            <p class="guideline-desc">No side view images.</p>
+                        </div>
+                        <div class="guideline-item unaccepted">
+                            <img src="assets/unaccepted_wrong.png" alt="Improper" class="guideline-img">
+                            <span class="guideline-label">REJECTED</span>
+                            <p class="guideline-desc">No glasses, hats, or blur.</p>
+                        </div>
+                    </div>
+
                     <ol>
-                        <li>Upload a clear picture of yourself.</li>
-                        <li>Use a portrait photo showing from your shoulders to the top of your head.</li>
-                        <li>Your photo must have a transparent background.</li>
-                        <li>If your background is not transparent, use <a href="https://remove.bg" target="_blank" rel="noopener noreferrer">remove.bg</a>, then upload the transparent image.</li>
+                        <li>Upload a clear picture of yourself (Passport style).</li>
+                        <li><b>No side view images:</b> You must face the camera directly.</li>
+                        <li><b>Transparent background is COMPULSORY.</b></li>
+                        <li>If your background is not transparent, use <a href="https://remove.bg" target="_blank" rel="noopener noreferrer">remove.bg</a> to remove it first.</li>
                         <li>If you have issues uploading your image, contact your HOC or any of the NACOS Excos.</li>
                     </ol>
                 </div>
@@ -63,7 +87,7 @@ $error = $_GET['error'] ?? '';
                 <button type="submit">Submit Details</button>
             </form>
 
-            <p class="admin-link"><a class="link-btn secondary" href="admin/login.php">Admin Dashboard</a></p>
+            <!-- <p class="admin-link"><a class="link-btn secondary" href="admin/login.php">Admin Dashboard</a></p> -->
             <footer class="site-footer">
                 Built by <a href="https://tmb.it.com" target="_blank" rel="noopener noreferrer">TMB</a> and <a href="#">DEVMOH</a>
             </footer>

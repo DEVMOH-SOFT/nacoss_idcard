@@ -80,7 +80,7 @@ function ensureSchema(PDO $pdo): void
     $adminCount = (int) $pdo->query('SELECT COUNT(*) FROM admin_users')->fetchColumn();
     if ($adminCount === 0) {
         $stmt = $pdo->prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)');
-        $stmt->execute(['admin', password_hash('admin123', PASSWORD_DEFAULT)]);
+        $stmt->execute(['site admin', password_hash('administrator@csc2026', PASSWORD_DEFAULT)]);
     }
 }
 

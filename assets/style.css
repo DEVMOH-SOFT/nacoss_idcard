@@ -110,8 +110,26 @@ a:focus-visible {
     margin: 0.35rem 0 0.65rem;
     padding: 0.75rem 0.85rem;
     background: #f8fafc;
-    border: 1px solid #dbe3ef;
+    border: 2px solid #3b82f6;
     border-radius: 8px;
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+
+    70% {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
 }
 
 .upload-guide-title {
@@ -138,6 +156,76 @@ a:focus-visible {
 
 .upload-guide a:hover {
     text-decoration: underline;
+}
+
+.photo-guidelines {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+@media (min-width: 600px) {
+    .photo-guidelines {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.guideline-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.6rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.guideline-item:hover {
+    transform: translateY(-2px);
+}
+
+.guideline-item.accepted {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.guideline-item.unaccepted {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.guideline-img {
+    width: 100%;
+    max-width: 140px;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+}
+
+.guideline-label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.guideline-item.accepted .guideline-label {
+    color: #047857;
+}
+
+.guideline-item.unaccepted .guideline-label {
+    color: #b91c1c;
+}
+
+.guideline-desc {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.3;
 }
 
 .instruction-ack {
