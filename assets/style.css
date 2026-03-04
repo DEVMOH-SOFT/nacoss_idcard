@@ -58,7 +58,7 @@ label {
     font-weight: 600;
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 button {
     width: 100%;
@@ -140,6 +140,33 @@ a:focus-visible {
     text-decoration: underline;
 }
 
+.instruction-ack {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.45rem 0 0.55rem;
+}
+
+.instruction-ack input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    accent-color: #14532d;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.instruction-ack label {
+    display: inline;
+    margin: 0;
+    font-weight: 600;
+    color: #0f172a;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
 .error-text {
     color: var(--danger);
 }
@@ -150,7 +177,6 @@ a:focus-visible {
     height: 150px;
     object-fit: cover;
     border-radius: 6px;
-    border: 1px solid var(--line);
 }
 
 .preview.always {
@@ -290,10 +316,10 @@ tbody tr:hover {
     height: 58px;
     object-fit: cover;
     border-radius: 4px;
-    border: 1px solid var(--line);
 }
 
 @media (max-width: 900px) {
+
     .filters,
     .bulk-row {
         grid-template-columns: 1fr;

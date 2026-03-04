@@ -238,8 +238,18 @@ function overlayCircularPhoto($card, $photo, int $cx, int $cy, int $radius): voi
     $transparent = imagecolorallocatealpha($temp, 0, 0, 0, 127);
     imagefill($temp, 0, 0, $transparent);
 
-    // Resample the photo onto the temp image (square → diameter x diameter)
-    imagecopyresampled($temp, $photo, 0, 0, $srcX, $srcY, $diameter, $diameter, $square, $square);
+    // Remove the previous zoom factor to ensure the image fills the circle (fixing "straight edges")
+    // and use a slightly higher crop to avoid cutting the top of the head.
+    $targetSize = $diameter;
+    $offset = 0;
+
+    // Shift crop area slightly UP (15% of the difference) to capture more headroom if portrait
+    if ($srcH > $srcW) {
+        $srcY = (int) max(0, $srcY - ($srcH - $srcW) * 0.15);
+    }
+
+    // Resample the photo onto the temp image
+    imagecopyresampled($temp, $photo, $offset, $offset, $srcX, $srcY, $targetSize, $targetSize, $square, $square);
 
     // Now apply circular mask: make pixels outside the circle transparent
     imagealphablending($temp, false);
@@ -320,9 +330,10 @@ function renderCard(array $student, string $outputPath): bool
     // Circle geometry (from template analysis):
     // Green fill: x=208→686, y=356→870
     // Center: x≈447, y≈613  Radius≈230
-    $circleCX = 447;
-    $circleCY = 613;
-    $circleRadius = 220; // slightly smaller than fill to stay inside border
+    // Circle geometry (Increased size and shifted down slightly):
+    $circleCX = 457;
+    $circleCY = 625; // moved down from 615
+    $circleRadius = 248; // increased from 240 for a slightly larger fit
 
     overlayCircularPhoto($card, $photo, $circleCX, $circleCY, $circleRadius);
     imagedestroy($photo);
@@ -385,10 +396,10 @@ function renderCard(array $student, string $outputPath): bool
     $postLine = "POST: " . $post . ", " . $level . "Lvl";
 
     [$matricSize] = fitText($matricLine, $boldFont, $maxTextWidth, 34, 18);
-    drawCenteredText($card, $matricSize, 1100, $darkGreen, $boldFont, $matricLine);
+    drawCenteredText($card, $matricSize, 1115, $darkGreen, $boldFont, $matricLine);
 
     [$postSize] = fitText($postLine, $boldFont, $maxTextWidth, 32, 18);
-    drawCenteredText($card, $postSize, 1145, $darkGreen, $boldFont, $postLine);
+    drawCenteredText($card, $postSize, 1160, $darkGreen, $boldFont, $postLine);
 
     // ─────────────────────────────────────────────
     // 5. Save output

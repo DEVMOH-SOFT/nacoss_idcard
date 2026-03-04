@@ -24,6 +24,10 @@ if ($matricNo === '' || !preg_match('/^[A-Z0-9\/-]+$/', $matricNo)) {
     header('Location: index.php?error=' . urlencode('Enter a valid matric number.'));
     exit;
 }
+if (($_POST['photo_instruction_ack'] ?? '') !== '1') {
+    header('Location: index.php?error=' . urlencode('Please read and acknowledge the photo instructions before uploading.'));
+    exit;
+}
 if (!isset($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
     header('Location: index.php?error=' . urlencode('Upload a valid image file.'));
     exit;

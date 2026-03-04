@@ -15,8 +15,8 @@ $error = $_GET['error'] ?? '';
 <body>
     <main class="container">
         <section class="card">
-            <h1>NACOS ID Card Form</h1>
-            <p class="muted">Fill your details correctly. Admin will generate your ID card from the dashboard.</p>
+            <h1>NACOS ID Card Apll Form</h1>
+            <p class="muted">Ensure you fill in your accurate details to avoid any issues with your ID card.</p>
 
             <?php if ($status === 'success'): ?>
                 <div class="alert success">Your details have been submitted successfully.</div>
@@ -42,7 +42,7 @@ $error = $_GET['error'] ?? '';
                 <input type="text" id="matric_no" name="matric_no" required maxlength="100" placeholder="e.g. 230303010052">
 
                 <label for="image">Passport Photograph</label>
-                <div class="upload-guide">
+                <div class="upload-guide" id="photoInstructionBox">
                     <p class="upload-guide-title">Photo Instructions</p>
                     <ol>
                         <li>Upload a clear picture of yourself.</li>
@@ -52,8 +52,12 @@ $error = $_GET['error'] ?? '';
                         <li>If you have issues uploading your image, contact your HOC or any of the NACOS Excos.</li>
                     </ol>
                 </div>
-                <input type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
-                <p class="warning" id="imageWarning">Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB. Prefer transparent background.</p>
+                <div class="instruction-ack">
+                    <input type="checkbox" id="photoInstructionAck" name="photo_instruction_ack" value="1" required>
+                    <label for="photoInstructionAck">I have read and understood the photo instructions.</label>
+                </div>
+                <input type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required disabled>
+                <p class="warning" id="imageWarning">Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB. Must be transparent background.</p>
                 <img id="preview" class="preview" alt="Image preview" hidden>
 
                 <button type="submit">Submit Details</button>

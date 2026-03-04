@@ -2,11 +2,38 @@
     const imageInput = document.getElementById('image');
     const preview = document.getElementById('preview');
     const warning = document.getElementById('imageWarning');
+    const photoInstructionAck = document.getElementById('photoInstructionAck');
     const checkAll = document.getElementById('checkAll');
     const checks = document.querySelectorAll('.studentCheck');
     const studentForm = document.getElementById('studentForm');
 
     if (imageInput && warning) {
+        const syncImageUploadGate = () => {
+            if (!photoInstructionAck) {
+                return;
+            }
+
+            const canUpload = photoInstructionAck.checked;
+            imageInput.disabled = !canUpload;
+            if (!canUpload) {
+                imageInput.value = '';
+                if (preview) {
+                    preview.hidden = true;
+                    preview.removeAttribute('src');
+                }
+                warning.textContent = 'Read and tick the instruction checkbox before uploading your image.';
+                warning.classList.remove('error-text');
+            } else {
+                warning.textContent = 'Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB. Must be transparent background.';
+                warning.classList.remove('error-text');
+            }
+        };
+
+        if (photoInstructionAck) {
+            photoInstructionAck.addEventListener('change', syncImageUploadGate);
+            syncImageUploadGate();
+        }
+
         imageInput.addEventListener('change', () => {
             const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
             if (!file) {
@@ -64,6 +91,12 @@
         const requiredFields = Array.from(studentForm.querySelectorAll('[required]'));
 
         const isFieldFilled = (field) => {
+            if (field.disabled) {
+                return true;
+            }
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                return field.checked;
+            }
             if (field.type === 'file') {
                 return !!(field.files && field.files.length > 0);
             }
