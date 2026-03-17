@@ -1,4 +1,4 @@
-﻿CREATE DATABASE IF NOT EXISTS student_id_system;
+CREATE DATABASE IF NOT EXISTS student_id_system;
 USE student_id_system;
 
 CREATE TABLE IF NOT EXISTS students (
@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS students (
     post VARCHAR(255) NOT NULL DEFAULT 'Student',
     matric_no VARCHAR(100) NOT NULL UNIQUE,
     image_path VARCHAR(255) NOT NULL,
+    is_generated TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

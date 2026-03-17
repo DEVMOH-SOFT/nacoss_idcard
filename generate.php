@@ -439,6 +439,10 @@ $tmpFiles = [];
 foreach ($students as $student) {
     $tempPath = sys_get_temp_dir() . '/id_card_' . $student['id'] . '_' . uniqid('', true) . '.png';
     if (renderCard($student, $tempPath)) {
+        // Mark as generated in DB
+        $stmtUpdate = $pdo->prepare('UPDATE students SET is_generated = 1 WHERE id = ?');
+        $stmtUpdate->execute([$student['id']]);
+
         $tmpFiles[] = [
             'path' => $tempPath,
             'name' => preg_replace('/[^A-Za-z0-9_-]/', '_', $student['matric_no']) . '.png',
