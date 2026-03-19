@@ -94,7 +94,6 @@ $error = $_GET['error'] ?? '';
         </section>
     </main>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
     <script src="assets/script.js"></script>
 </body>
 </html>
