@@ -8,10 +8,6 @@ if (function_exists('ini_set')) {
     @ini_set('display_errors', '0');
 }
 
-if (empty($_SESSION['admin_user_id'])) {
-    http_response_code(403);
-    exit('Admin login required.');
-}
 
 function loadStudents(PDO $pdo): array
 {
@@ -330,10 +326,10 @@ function renderCard(array $student, string $outputPath): bool
     // Circle geometry (from template analysis):
     // Green fill: x=208→686, y=356→870
     // Center: x≈447, y≈613  Radius≈230
-    // Circle geometry (Increased size and shifted down slightly):
-    $circleCX = 457;
-    $circleCY = 625; // moved down from 615
-    $circleRadius = 248; // increased from 240 for a slightly larger fit
+    // Circle geometry (New Template):
+    $circleCX = 374;
+    $circleCY = 469;
+    $circleRadius = 215;
 
     overlayCircularPhoto($card, $photo, $circleCX, $circleCY, $circleRadius);
     imagedestroy($photo);
@@ -355,51 +351,43 @@ function renderCard(array $student, string $outputPath): bool
 
     $blackFont = $fonts['black'];  // heaviest weight for surname
     $boldFont = $fonts['bold'];
-    $regularFont = $fonts['regular'];
-    $maxTextWidth = 720; // max horizontal space for text
+    $maxTextWidth = 600; // max horizontal space for text
 
     // ─────────────────────────────────────────────
     // 3. Draw student name (centered, below circle)
     // ─────────────────────────────────────────────
-    // Reference measurements:
-    //   Circle bottom: y≈898, white gap then surname at y=913→980 (67px tall)
-    //   Other names: y=994→1029 (35px tall)
-    //   Separator line: y=1055
-    //
-    // On the design template the green circle fill ends at y≈870,
-    // with the circle border/anti-alias ending at y≈898.
-    // Surname baseline at y≈975, other names baseline at y≈1025.
+    // Updated baselines for 720x1080 template:
+    // Surname baseline: y=735
+    // Other names: baseline: y=775
+    // Separator line is at y=798
 
     // First, cover the existing "MATRIC:" and "POST:" labels with white
-    // so we can redraw them centered with values
     $white = imagecolorallocate($card, 255, 255, 255);
-    imagefilledrectangle($card, 200, 1065, 600, 1165, $white);
+    // Covering area below the line between x=180 and x=570 (further reduced height)
+    imagefilledrectangle($card, 180, 802, 570, 915, $white);
 
-    // Draw surname — extra bold (Arial Black + faux-bold passes)
-    [$surnameSize] = fitText($surname, $blackFont, $maxTextWidth, 65, 35);
-    drawCenteredText($card, $surnameSize, 975, $darkGreen, $blackFont, $surname, 2);
+    // Draw surname
+    [$surnameSize] = fitText($surname, $blackFont, $maxTextWidth, 48, 28);
+    drawCenteredText($card, $surnameSize, 735, $darkGreen, $blackFont, $surname, 3);
 
-    // Draw other names — bold but lighter weight than surname
+    // Draw other names
     if ($otherNames !== '') {
-        [$otherSize] = fitText($otherNames, $boldFont, $maxTextWidth, 42, 22);
-        drawCenteredText($card, $otherSize, 1030, $darkGreen, $boldFont, $otherNames);
+        [$otherSize] = fitText($otherNames, $boldFont, $maxTextWidth, 31, 16);
+        drawCenteredText($card, $otherSize, 775, $darkGreen, $boldFont, $otherNames);
     }
 
     // ─────────────────────────────────────────────
     // 4. Draw MATRIC and POST lines (centered with values)
     // ─────────────────────────────────────────────
-    // The separator line is at ~y=1055 on the template (already drawn)
-    // MATRIC goes below separator, POST below that
-
     // Build combined strings like the reference
     $matricLine = "MATRIC: " . $matric;
     $postLine = "POST: " . $post . ", " . $level . "Lvl";
 
-    [$matricSize] = fitText($matricLine, $boldFont, $maxTextWidth, 34, 18);
-    drawCenteredText($card, $matricSize, 1115, $darkGreen, $boldFont, $matricLine);
+    [$matricSize] = fitText($matricLine, $boldFont, $maxTextWidth, 26, 16);
+    drawCenteredText($card, $matricSize, 840, $darkGreen, $boldFont, $matricLine);
 
-    [$postSize] = fitText($postLine, $boldFont, $maxTextWidth, 32, 18);
-    drawCenteredText($card, $postSize, 1160, $darkGreen, $boldFont, $postLine);
+    [$postSize] = fitText($postLine, $boldFont, $maxTextWidth, 24, 16);
+    drawCenteredText($card, $postSize, 890, $darkGreen, $boldFont, $postLine);
 
     // ─────────────────────────────────────────────
     // 5. Save output
@@ -429,65 +417,72 @@ function streamDownload(string $path, string $contentType, string $filename): vo
     exit;
 }
 
-$students = loadStudents($pdo);
-if ($students === []) {
-    http_response_code(400);
-    exit('No students found for this generation request.');
-}
-
-$tmpFiles = [];
-foreach ($students as $student) {
-    $tempPath = sys_get_temp_dir() . '/id_card_' . $student['id'] . '_' . uniqid('', true) . '.png';
-    if (renderCard($student, $tempPath)) {
-        // Mark as generated in DB
-        $stmtUpdate = $pdo->prepare('UPDATE students SET is_generated = 1 WHERE id = ?');
-        $stmtUpdate->execute([$student['id']]);
-
-        $tmpFiles[] = [
-            'path' => $tempPath,
-            'name' => preg_replace('/[^A-Za-z0-9_-]/', '_', $student['matric_no']) . '.png',
-        ];
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+    if (empty($_SESSION['admin_user_id'])) {
+        http_response_code(403);
+        exit('Admin login required.');
     }
-}
+    $students = loadStudents($pdo);
+    if ($students === []) {
+        http_response_code(400);
+        exit('No students found for this generation request.');
+    }
 
-if ($tmpFiles === []) {
-    http_response_code(500);
-    exit('Could not generate cards. Check student images and template files.');
-}
+    $tmpFiles = [];
+    foreach ($students as $student) {
+        $tempPath = sys_get_temp_dir() . '/id_card_' . $student['id'] . '_' . uniqid('', true) . '.png';
+        if (renderCard($student, $tempPath)) {
+            // Mark as generated in DB
+            $stmtUpdate = $pdo->prepare('UPDATE students SET is_generated = 1 WHERE id = ?');
+            $stmtUpdate->execute([$student['id']]);
 
-if (count($tmpFiles) === 1) {
-    $file = $tmpFiles[0];
-    register_shutdown_function(static function () use ($file): void {
-        if (file_exists($file['path'])) {
-            unlink($file['path']);
+            $tmpFiles[] = [
+                'path' => $tempPath,
+                'name' => preg_replace('/[^A-Za-z0-9_-]/', '_', $student['matric_no']) . '.png',
+            ];
         }
-    });
-    streamDownload($file['path'], 'image/png', $file['name']);
-}
-
-$zipPath = sys_get_temp_dir() . '/id_cards_' . time() . '_' . uniqid('', true) . '.zip';
-$zip = new ZipArchive();
-if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-    foreach ($tmpFiles as $tmp) {
-        unlink($tmp['path']);
     }
-    http_response_code(500);
-    exit('Failed to create ZIP file.');
-}
 
-foreach ($tmpFiles as $tmp) {
-    $zip->addFile($tmp['path'], $tmp['name']);
-}
-$zip->close();
+    if ($tmpFiles === []) {
+        http_response_code(500);
+        exit('Could not generate cards. Check student images and template files.');
+    }
 
-register_shutdown_function(static function () use ($tmpFiles, $zipPath): void {
-    foreach ($tmpFiles as $tmp) {
-        if (file_exists($tmp['path'])) {
+    if (count($tmpFiles) === 1) {
+        $file = $tmpFiles[0];
+        register_shutdown_function(static function () use ($file): void {
+            if (file_exists($file['path'])) {
+                unlink($file['path']);
+            }
+        });
+        streamDownload($file['path'], 'image/png', $file['name']);
+    }
+
+    $zipPath = sys_get_temp_dir() . '/id_cards_' . time() . '_' . uniqid('', true) . '.zip';
+    $zip = new ZipArchive();
+    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        foreach ($tmpFiles as $tmp) {
             unlink($tmp['path']);
         }
+        http_response_code(500);
+        exit('Failed to create ZIP file.');
     }
-    if (file_exists($zipPath)) {
-        unlink($zipPath);
+
+    foreach ($tmpFiles as $tmp) {
+        $zip->addFile($tmp['path'], $tmp['name']);
     }
-});
-streamDownload($zipPath, 'application/zip', 'id_cards_' . date('Ymd_His') . '.zip');
+    $zip->close();
+
+    register_shutdown_function(static function () use ($tmpFiles, $zipPath): void {
+        foreach ($tmpFiles as $tmp) {
+            if (file_exists($tmp['path'])) {
+                unlink($tmp['path']);
+            }
+        }
+        if (file_exists($zipPath)) {
+            unlink($zipPath);
+        }
+    });
+    streamDownload($zipPath, 'application/zip', 'id_cards_' . date('Ymd_His') . '.zip');
+}
+

@@ -22,7 +22,7 @@ if (!$student) {
     echo json_encode([
         'success' => true,
         'exists' => false,
-        'message' => 'Matric number not found. You can continue with a new submission.',
+        'message' => 'You can continue with a new submission.',
     ]);
     exit;
 }
