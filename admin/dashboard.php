@@ -175,7 +175,12 @@ function buildUrl(array $overrides): string {
                                                         <span class="badge warning">Pending</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td><img class="thumb" src="../<?= e($student['image_path']) ?>" alt="Student photo"></td>
+                                                <td>
+                                                    <?php 
+                                                    $displayPath = (strpos($student['image_path'], 'uploads/') === 0) ? '../' . $student['image_path'] : '../uploads/' . $student['image_path'];
+                                                    ?>
+                                                    <img class="thumb" src="<?= e($displayPath) ?>" alt="Student photo">
+                                                </td>
                                                 <td class="action-links">
                                                     <a class="link-btn" href="../generate.php?action=single&id=<?= (int) $student['id'] ?>">Generate</a>
                                                     <a class="link-btn secondary" href="edit.php?id=<?= (int) $student['id'] ?>">Edit</a>

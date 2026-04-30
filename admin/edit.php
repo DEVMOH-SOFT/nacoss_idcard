@@ -54,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($allowed[$mime])) {
                 $error = 'Invalid image format. Use JPG, PNG, or WEBP.';
             } else {
-                $uploadDir = dirname(__DIR__) . '/uploads/students';
+                $uploadDir = dirname(__DIR__) . '/uploads';
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
                 $filename = preg_replace('/[^A-Z0-9]/', '', $matricNo) . '_' . time() . '.' . $allowed[$mime];
                 $newImageFullPath = $uploadDir . '/' . $filename;
-                $newImagePath = 'uploads/students/' . $filename;
+                $newImagePath = $filename; // Store only the filename
 
                 if (!move_uploaded_file($_FILES['image']['tmp_name'], $newImageFullPath)) {
                     $error = 'Failed to save new image.';
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update->execute([$fullName, $level, $post, $matricNo, $newImagePath, $id]);
 
             if ($newImagePath !== $student['image_path']) {
-                $oldPath = dirname(__DIR__) . '/' . ltrim($student['image_path'], '/');
+                $oldPath = dirname(__DIR__) . '/uploads/' . $student['image_path'];
                 if (file_exists($oldPath)) {
                     unlink($oldPath);
                 }
@@ -139,7 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="file" id="image" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                 <p class="warning">Allowed image types: JPG, JPEG, PNG, WEBP. Max size: 2MB.</p>
 
-                <img src="../<?= e($student['image_path']) ?>" class="preview always" alt="Current image">
+                <?php 
+                $displayPath = (strpos($student['image_path'], 'uploads/') === 0) ? '../' . $student['image_path'] : '../uploads/' . $student['image_path'];
+                ?>
+                <img src="<?= e($displayPath) ?>" class="preview always" alt="Current image">
 
                 <button type="submit">Save Changes</button>
             </form>

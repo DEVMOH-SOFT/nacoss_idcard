@@ -3,11 +3,15 @@ require 'config.php';
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
-// Binary responses (PNG/ZIP) break if warnings/notices are printed.
+
+// Optimization: Increase limits for bulk processing
 if (function_exists('ini_set')) {
+    @ini_set('memory_limit', '1024M');
     @ini_set('display_errors', '0');
 }
-
+if (function_exists('set_time_limit')) {
+    @set_time_limit(0);
+}
 
 function loadStudents(PDO $pdo): array
 {
@@ -28,18 +32,16 @@ function loadStudents(PDO $pdo): array
     }
 
     $action = $_POST['action'] ?? '';
-    if ($action === 'all') {
-        return $pdo->query('SELECT * FROM students ORDER BY level, full_name')->fetchAll();
-    }
-
-    if ($action === 'level') {
+    
+    // Support filtering for "Generate All in View"
+    if ($action === 'all' || $action === 'level') {
         $level = $_POST['gen_level'] ?? '';
-        if (!in_array($level, ['100', '200', '300', '400'], true)) {
-            return [];
+        if ($level !== '' && in_array($level, ['100', '200', '300', '400'], true)) {
+            $stmt = $pdo->prepare('SELECT * FROM students WHERE level = ? ORDER BY full_name');
+            $stmt->execute([$level]);
+            return $stmt->fetchAll();
         }
-        $stmt = $pdo->prepare('SELECT * FROM students WHERE level = ? ORDER BY full_name');
-        $stmt->execute([$level]);
-        return $stmt->fetchAll();
+        return $pdo->query('SELECT * FROM students ORDER BY level, full_name')->fetchAll();
     }
 
     if ($action === 'selected') {
@@ -75,23 +77,20 @@ function openImageResource(string $path)
         return null;
     }
 
-    $mime = mime_content_type($path);
+    $mime = @mime_content_type($path);
     if ($mime === 'image/jpeg') {
-        return imagecreatefromjpeg($path);
+        return @imagecreatefromjpeg($path);
     }
     if ($mime === 'image/png') {
-        return imagecreatefrompng($path);
+        return @imagecreatefrompng($path);
     }
     if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
-        return imagecreatefromwebp($path);
+        return @imagecreatefromwebp($path);
     }
 
     return null;
 }
 
-/**
- * Measure text width for a given string, font size, and font path.
- */
 function measureTextWidth(string $text, float $size, string $fontPath): int
 {
     $box = @imagettfbbox($size, 0, $fontPath, $text);
@@ -101,10 +100,6 @@ function measureTextWidth(string $text, float $size, string $fontPath): int
     return abs($box[2] - $box[0]);
 }
 
-/**
- * Auto-size text down from startSize until it fits within maxWidth.
- * Returns [fontSize, textWidth].
- */
 function fitText(string $text, string $fontPath, int $maxWidth, int $startSize, int $minSize = 18): array
 {
     $size = $startSize;
@@ -115,78 +110,31 @@ function fitText(string $text, string $fontPath, int $maxWidth, int $startSize, 
         }
         $size--;
     }
-
     $width = measureTextWidth($text, $minSize, $fontPath);
     return [$minSize, $width];
 }
 
-/**
- * Resolve font paths. Returns associative array with 'black', 'bold', and 'regular' keys.
- * 'black' is the heaviest weight for the surname (like the reference design).
- */
 function resolveFonts(): array
 {
     $fonts = ['regular' => null, 'bold' => null, 'black' => null];
-
-    // Black (extra-heavy) font candidates — for surname
-    $blackCandidates = [
-        __DIR__ . '/assets/ariblk.ttf',
-        'C:/Windows/Fonts/ariblk.ttf',
-    ];
+    $blackCandidates = [__DIR__ . '/assets/ariblk.ttf', 'C:/Windows/Fonts/ariblk.ttf'];
     foreach ($blackCandidates as $path) {
-        if (is_file($path) && @imagettfbbox(20, 0, $path, 'TEST') !== false) {
-            $fonts['black'] = $path;
-            break;
-        }
+        if (is_file($path)) { $fonts['black'] = $path; break; }
     }
-
-    // Bold font candidates
-    $boldCandidates = [
-        __DIR__ . '/assets/arialbd.ttf',
-        'C:/Windows/Fonts/arialbd.ttf',
-        __DIR__ . '/assets/impact.ttf',
-        'C:/Windows/Fonts/impact.ttf',
-    ];
+    $boldCandidates = [__DIR__ . '/assets/arialbd.ttf', 'C:/Windows/Fonts/arialbd.ttf', __DIR__ . '/assets/impact.ttf', 'C:/Windows/Fonts/impact.ttf'];
     foreach ($boldCandidates as $path) {
-        if (is_file($path) && @imagettfbbox(20, 0, $path, 'TEST') !== false) {
-            $fonts['bold'] = $path;
-            break;
-        }
+        if (is_file($path)) { $fonts['bold'] = $path; break; }
     }
-
-    // Regular font candidates
-    $regularCandidates = [
-        __DIR__ . '/assets/arial.ttf',
-        'C:/Windows/Fonts/arial.ttf',
-        'C:/Windows/Fonts/calibri.ttf',
-        'C:/Windows/Fonts/segoeui.ttf',
-    ];
+    $regularCandidates = [__DIR__ . '/assets/arial.ttf', 'C:/Windows/Fonts/arial.ttf', 'C:/Windows/Fonts/calibri.ttf', 'C:/Windows/Fonts/segoeui.ttf'];
     foreach ($regularCandidates as $path) {
-        if (is_file($path) && @imagettfbbox(20, 0, $path, 'TEST') !== false) {
-            $fonts['regular'] = $path;
-            break;
-        }
+        if (is_file($path)) { $fonts['regular'] = $path; break; }
     }
-
-    // Fallback chain: black -> bold -> regular
-    if ($fonts['black'] === null) {
-        $fonts['black'] = $fonts['bold'] ?? $fonts['regular'];
-    }
-    if ($fonts['bold'] === null) {
-        $fonts['bold'] = $fonts['black'] ?? $fonts['regular'];
-    }
-    if ($fonts['regular'] === null) {
-        $fonts['regular'] = $fonts['bold'];
-    }
-
+    if ($fonts['black'] === null) $fonts['black'] = $fonts['bold'] ?? $fonts['regular'];
+    if ($fonts['bold'] === null) $fonts['bold'] = $fonts['black'] ?? $fonts['regular'];
+    if ($fonts['regular'] === null) $fonts['regular'] = $fonts['bold'];
     return $fonts;
 }
 
-/**
- * Draw text centered horizontally on the card.
- * If $fauxBoldPasses > 1, draws the text multiple times with tiny offsets
- * to simulate an even heavier weight.
- */
 function drawCenteredText($card, float $size, int $y, int $color, string $fontPath, string $text, int $fauxBoldPasses = 1): void
 {
     $cardWidth = imagesx($card);
@@ -196,13 +144,9 @@ function drawCenteredText($card, float $size, int $y, int $color, string $fontPa
     if ($fauxBoldPasses <= 1) {
         imagettftext($card, $size, 0, $x, $y, $color, $fontPath, $text);
     } else {
-        // Faux-bold: render text at small offsets for extra thickness
         $offsets = [[0, 0], [1, 0], [0, 1], [1, 1]];
         if ($fauxBoldPasses >= 3) {
-            $offsets[] = [2, 0];
-            $offsets[] = [0, 2];
-            $offsets[] = [2, 1];
-            $offsets[] = [1, 2];
+            $offsets = array_merge($offsets, [[2, 0], [0, 2], [2, 1], [1, 2]]);
         }
         foreach ($offsets as [$ox, $oy]) {
             imagettftext($card, $size, 0, $x + $ox, $y + $oy, $color, $fontPath, $text);
@@ -210,188 +154,101 @@ function drawCenteredText($card, float $size, int $y, int $color, string $fontPa
     }
 }
 
-/**
- * Crop the photo into a circle and overlay it onto the card at the specified position.
- * The photo is placed inside the green circle area of the template.
- */
 function overlayCircularPhoto($card, $photo, int $cx, int $cy, int $radius): void
 {
     $srcW = imagesx($photo);
     $srcH = imagesy($photo);
-
-    // Crop to square from center
     $square = min($srcW, $srcH);
     $srcX = (int) (($srcW - $square) / 2);
     $srcY = (int) (($srcH - $square) / 2);
-
-    // Diameter of the destination circle
     $diameter = $radius * 2;
-
-    // Create a temporary image for the circular photo
     $temp = imagecreatetruecolor($diameter, $diameter);
     imagealphablending($temp, false);
     imagesavealpha($temp, true);
     $transparent = imagecolorallocatealpha($temp, 0, 0, 0, 127);
     imagefill($temp, 0, 0, $transparent);
 
-    // Remove the previous zoom factor to ensure the image fills the circle (fixing "straight edges")
-    // and use a slightly higher crop to avoid cutting the top of the head.
-    $targetSize = $diameter;
-    $offset = 0;
-
-    // Shift crop area slightly UP (15% of the difference) to capture more headroom if portrait
     if ($srcH > $srcW) {
         $srcY = (int) max(0, $srcY - ($srcH - $srcW) * 0.15);
     }
 
-    // Resample the photo onto the temp image
-    imagecopyresampled($temp, $photo, $offset, $offset, $srcX, $srcY, $targetSize, $targetSize, $square, $square);
-
-    // Now apply circular mask: make pixels outside the circle transparent
+    imagecopyresampled($temp, $photo, 0, 0, $srcX, $srcY, $diameter, $diameter, $square, $square);
     imagealphablending($temp, false);
+    $radiusSq = $radius * $radius;
     for ($py = 0; $py < $diameter; $py++) {
+        $dy = $py - $radius;
+        $dySq = $dy * $dy;
         for ($px = 0; $px < $diameter; $px++) {
             $dx = $px - $radius;
-            $dy = $py - $radius;
-            $dist = sqrt($dx * $dx + $dy * $dy);
-            if ($dist > $radius) {
+            $distSq = $dx * $dx + $dySq;
+            if ($distSq > $radiusSq) {
                 imagesetpixel($temp, $px, $py, $transparent);
-            } elseif ($dist > $radius - 1.5) {
-                // Anti-alias the edge
+            } elseif ($distSq > ($radius - 1.5) * ($radius - 1.5)) {
+                $dist = sqrt($distSq);
                 $alpha = (int) (($dist - ($radius - 1.5)) / 1.5 * 127);
                 $alpha = min(127, max(0, $alpha));
                 $rgb = imagecolorat($temp, $px, $py);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-                $newColor = imagecolorallocatealpha($temp, $r, $g, $b, $alpha);
+                $newColor = imagecolorallocatealpha($temp, ($rgb >> 16) & 0xFF, ($rgb >> 8) & 0xFF, $rgb & 0xFF, $alpha);
                 imagesetpixel($temp, $px, $py, $newColor);
             }
         }
     }
-
-    // Composite the circular photo onto the card
-    $dstX = $cx - $radius;
-    $dstY = $cy - $radius;
     imagealphablending($card, true);
-    imagecopy($card, $temp, $dstX, $dstY, 0, 0, $diameter, $diameter);
+    imagecopy($card, $temp, $cx - $radius, $cy - $radius, 0, 0, $diameter, $diameter);
     imagedestroy($temp);
 }
 
-/**
- * Render an ID card for a student matching the reference design.
- *
- * Layout (on 890×1422 canvas using Id_card_design.png template):
- * ─ Circular photo placed inside the green circle area
- * ─ Student surname (large, bold, dark green, centered)
- * ─ Student first+middle names (slightly smaller, bold, dark green, centered)
- * ─ Green separator line (already on template at ~y=1055)
- * ─ "MATRIC: <value>" and "POST: <value>" centered, bold, dark green
- *
- * Uses Id_card_design.png as the template (blank design with labels).
- */
-function renderCard(array $student, string $outputPath): bool
+function renderCard(array $student, string $outputPath, $templateBase, array $fonts): bool
 {
-    $templatePath = __DIR__ . '/assets/Id_card_design.png';
-    if (!is_file($templatePath)) {
-        return false;
-    }
-
-    $fonts = resolveFonts();
-    if ($fonts['bold'] === null) {
-        return false;
-    }
-
-    $card = @imagecreatefrompng($templatePath);
-    if (!$card) {
-        return false;
-    }
-
-    imagealphablending($card, true);
+    if (!$templateBase) return false;
+    $card = imagecreatetruecolor(imagesx($templateBase), imagesy($templateBase));
+    imagealphablending($card, false);
     imagesavealpha($card, true);
+    imagecopy($card, $templateBase, 0, 0, 0, 0, imagesx($templateBase), imagesy($templateBase));
+    imagealphablending($card, true);
 
-    $cardWidth = imagesx($card);
-    // $cardHeight = imagesy($card); // 1422
-
-    // ─────────────────────────────────────────────
-    // 1. Place circular photo inside the green circle
-    // ─────────────────────────────────────────────
-    $photoPath = __DIR__ . '/' . ltrim($student['image_path'], '/');
+    $relPath = ltrim($student['image_path'], '/');
+    if (strpos($relPath, 'uploads/') === 0) {
+        $photoPath = __DIR__ . '/' . $relPath;
+    } else {
+        $photoPath = __DIR__ . '/uploads/' . $relPath;
+    }
     $photo = openImageResource($photoPath);
     if (!$photo) {
         imagedestroy($card);
         return false;
     }
 
-    // Circle geometry (from template analysis):
-    // Green fill: x=208→686, y=356→870
-    // Center: x≈447, y≈613  Radius≈230
-    // Circle geometry (New Template):
-    $circleCX = 374;
-    $circleCY = 469;
-    $circleRadius = 215;
-
-    overlayCircularPhoto($card, $photo, $circleCX, $circleCY, $circleRadius);
+    overlayCircularPhoto($card, $photo, 374, 469, 215);
     imagedestroy($photo);
 
-    // ─────────────────────────────────────────────
-    // 2. Prepare text data
-    // ─────────────────────────────────────────────
-    $darkGreen = imagecolorallocate($card, 6, 96, 0); // #066000
+    $darkGreen = imagecolorallocate($card, 6, 96, 0);
+    $white = imagecolorallocate($card, 255, 255, 255);
+    imagefilledrectangle($card, 180, 802, 570, 915, $white);
 
     $fullName = strtoupper(trim((string) $student['full_name']));
     $matric = strtoupper(trim((string) $student['matric_no']));
     $post = trim((string) $student['post']);
     $level = trim((string) $student['level']);
 
-    // Split full name: first word = surname, rest = other names
     $nameParts = preg_split('/\s+/', $fullName, 2);
     $surname = $nameParts[0] ?? '';
     $otherNames = $nameParts[1] ?? '';
 
-    $blackFont = $fonts['black'];  // heaviest weight for surname
-    $boldFont = $fonts['bold'];
-    $maxTextWidth = 600; // max horizontal space for text
-
-    // ─────────────────────────────────────────────
-    // 3. Draw student name (centered, below circle)
-    // ─────────────────────────────────────────────
-    // Updated baselines for 720x1080 template:
-    // Surname baseline: y=735
-    // Other names: baseline: y=775
-    // Separator line is at y=798
-
-    // First, cover the existing "MATRIC:" and "POST:" labels with white
-    $white = imagecolorallocate($card, 255, 255, 255);
-    // Covering area below the line between x=180 and x=570 (further reduced height)
-    imagefilledrectangle($card, 180, 802, 570, 915, $white);
-
-    // Draw surname
-    [$surnameSize] = fitText($surname, $blackFont, $maxTextWidth, 48, 28);
-    drawCenteredText($card, $surnameSize, 735, $darkGreen, $blackFont, $surname, 3);
-
-    // Draw other names
+    [$surnameSize] = fitText($surname, $fonts['black'], 600, 48, 28);
+    drawCenteredText($card, $surnameSize, 735, $darkGreen, $fonts['black'], $surname, 3);
     if ($otherNames !== '') {
-        [$otherSize] = fitText($otherNames, $boldFont, $maxTextWidth, 31, 16);
-        drawCenteredText($card, $otherSize, 775, $darkGreen, $boldFont, $otherNames);
+        [$otherSize] = fitText($otherNames, $fonts['bold'], 600, 31, 16);
+        drawCenteredText($card, $otherSize, 775, $darkGreen, $fonts['bold'], $otherNames);
     }
 
-    // ─────────────────────────────────────────────
-    // 4. Draw MATRIC and POST lines (centered with values)
-    // ─────────────────────────────────────────────
-    // Build combined strings like the reference
     $matricLine = "MATRIC: " . $matric;
     $postLine = "POST: " . $post . ", " . $level . "Lvl";
+    [$mSize] = fitText($matricLine, $fonts['bold'], 600, 26, 16);
+    drawCenteredText($card, $mSize, 840, $darkGreen, $fonts['bold'], $matricLine);
+    [$pSize] = fitText($postLine, $fonts['bold'], 600, 24, 16);
+    drawCenteredText($card, $pSize, 890, $darkGreen, $fonts['bold'], $postLine);
 
-    [$matricSize] = fitText($matricLine, $boldFont, $maxTextWidth, 26, 16);
-    drawCenteredText($card, $matricSize, 840, $darkGreen, $boldFont, $matricLine);
-
-    [$postSize] = fitText($postLine, $boldFont, $maxTextWidth, 24, 16);
-    drawCenteredText($card, $postSize, 890, $darkGreen, $boldFont, $postLine);
-
-    // ─────────────────────────────────────────────
-    // 5. Save output
-    // ─────────────────────────────────────────────
     $ok = imagepng($card, $outputPath);
     imagedestroy($card);
     return $ok;
@@ -400,88 +257,66 @@ function renderCard(array $student, string $outputPath): bool
 function streamDownload(string $path, string $contentType, string $filename): void
 {
     if (!is_file($path)) {
-        http_response_code(500);
-        exit('Generated file not found.');
+        http_response_code(500); exit('File not found.');
     }
-
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-
+    while (ob_get_level() > 0) ob_end_clean();
     header('Content-Type: ' . $contentType);
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Content-Length: ' . filesize($path));
     header('X-Content-Type-Options: nosniff');
-
     readfile($path);
     exit;
 }
 
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
     if (empty($_SESSION['admin_user_id'])) {
-        http_response_code(403);
-        exit('Admin login required.');
+        http_response_code(403); exit('Admin login required.');
     }
     $students = loadStudents($pdo);
     if ($students === []) {
-        http_response_code(400);
-        exit('No students found for this generation request.');
+        http_response_code(400); exit('No students found.');
+    }
+
+    $templatePath = __DIR__ . '/assets/Id_card_design.png';
+    $templateBase = @imagecreatefrompng($templatePath);
+    $fonts = resolveFonts();
+
+    if (!$templateBase || !$fonts['bold']) {
+        http_response_code(500); exit('Template or fonts missing.');
     }
 
     $tmpFiles = [];
     foreach ($students as $student) {
-        $tempPath = sys_get_temp_dir() . '/id_card_' . $student['id'] . '_' . uniqid('', true) . '.png';
-        if (renderCard($student, $tempPath)) {
-            // Mark as generated in DB
-            $stmtUpdate = $pdo->prepare('UPDATE students SET is_generated = 1 WHERE id = ?');
-            $stmtUpdate->execute([$student['id']]);
-
-            $tmpFiles[] = [
-                'path' => $tempPath,
-                'name' => preg_replace('/[^A-Za-z0-9_-]/', '_', $student['matric_no']) . '.png',
-            ];
+        $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'id_' . $student['id'] . '_' . uniqid() . '.png';
+        if (renderCard($student, $tempPath, $templateBase, $fonts)) {
+            $pdo->prepare('UPDATE students SET is_generated = 1 WHERE id = ?')->execute([$student['id']]);
+            $tmpFiles[] = ['path' => $tempPath, 'name' => preg_replace('/[^A-Za-z0-9_-]/', '_', $student['matric_no']) . '.png'];
         }
     }
+    imagedestroy($templateBase);
 
     if ($tmpFiles === []) {
-        http_response_code(500);
-        exit('Could not generate cards. Check student images and template files.');
+        http_response_code(500); exit('Failed to generate any cards.');
     }
 
     if (count($tmpFiles) === 1) {
-        $file = $tmpFiles[0];
-        register_shutdown_function(static function () use ($file): void {
-            if (file_exists($file['path'])) {
-                unlink($file['path']);
-            }
-        });
-        streamDownload($file['path'], 'image/png', $file['name']);
+        $f = $tmpFiles[0];
+        register_shutdown_function(fn() => @unlink($f['path']));
+        streamDownload($f['path'], 'image/png', $f['name']);
     }
 
-    $zipPath = sys_get_temp_dir() . '/id_cards_' . time() . '_' . uniqid('', true) . '.zip';
+    $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'id_cards_' . uniqid() . '.zip';
     $zip = new ZipArchive();
     if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-        foreach ($tmpFiles as $tmp) {
-            unlink($tmp['path']);
-        }
-        http_response_code(500);
-        exit('Failed to create ZIP file.');
+        foreach ($tmpFiles as $t) @unlink($t['path']);
+        http_response_code(500); exit('Failed to create ZIP.');
     }
-
-    foreach ($tmpFiles as $tmp) {
-        $zip->addFile($tmp['path'], $tmp['name']);
-    }
+    foreach ($tmpFiles as $t) $zip->addFile($t['path'], $t['name']);
     $zip->close();
 
-    register_shutdown_function(static function () use ($tmpFiles, $zipPath): void {
-        foreach ($tmpFiles as $tmp) {
-            if (file_exists($tmp['path'])) {
-                unlink($tmp['path']);
-            }
-        }
-        if (file_exists($zipPath)) {
-            unlink($zipPath);
-        }
+    register_shutdown_function(function() use ($tmpFiles, $zipPath) {
+        foreach ($tmpFiles as $t) @unlink($t['path']);
+        @unlink($zipPath);
     });
     streamDownload($zipPath, 'application/zip', 'id_cards_' . date('Ymd_His') . '.zip');
 }

@@ -41,6 +41,7 @@ function ensureSchema(PDO $pdo): void
             post VARCHAR(255) NOT NULL DEFAULT 'Student',
             matric_no VARCHAR(100) NOT NULL UNIQUE,
             image_path VARCHAR(255) NOT NULL,
+            is_generated TINYINT(1) DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )"
@@ -57,6 +58,9 @@ function ensureSchema(PDO $pdo): void
     }
     if (!isset($columnMap['post'])) {
         $pdo->exec("ALTER TABLE students ADD COLUMN post VARCHAR(255) NOT NULL DEFAULT 'Student' AFTER level");
+    }
+    if (!isset($columnMap['is_generated'])) {
+        $pdo->exec("ALTER TABLE students ADD COLUMN is_generated TINYINT(1) DEFAULT 0 AFTER image_path");
     }
     if (!isset($columnMap['created_at']) && isset($columnMap['date_created'])) {
         $pdo->exec('ALTER TABLE students CHANGE date_created created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
@@ -90,3 +94,7 @@ function e(string $value): string
 }
 
 ensureSchema($pdo);
+
+// API Configuration
+define('BASE_URL', 'https://nacosid.tmb.it.com/'); // Updated production URL
+define('API_KEY', 'your_secure_api_key_here'); // Change this to a secure key

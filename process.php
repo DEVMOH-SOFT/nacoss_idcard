@@ -33,7 +33,7 @@ if ($matricNo === '' || !preg_match('/^[A-Z0-9\/-]+$/', $matricNo)) {
     exit;
 }
 
-$uploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'students';
+$uploadDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
@@ -62,7 +62,7 @@ $storeUploadedImage = static function (array $file, string $matricNo) use ($allo
 
     $filename = preg_replace('/[^A-Z0-9]/', '', $matricNo) . '_' . time() . '.' . $allowedMimes[$mime];
     $newImageFullPath = $uploadDir . DIRECTORY_SEPARATOR . $filename;
-    $relativePath = 'uploads/students/' . $filename;
+    $relativePath = $filename; // Store only the filename
 
     if (!move_uploaded_file($file['tmp_name'], $newImageFullPath)) {
         header('Location: index.php?error=' . urlencode('Failed to save uploaded image.'));
@@ -102,7 +102,8 @@ if ($formMode === 'edit') {
         $stmt->execute([$fullName, $level, $student['post'], $matricNo, $imagePath, $studentId]);
 
         if ($imageUploaded) {
-            $oldPath = __DIR__ . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($student['image_path'], '/\\'));
+            $oldFilename = $student['image_path'];
+            $oldPath = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $oldFilename;
             if (file_exists($oldPath)) {
                 unlink($oldPath);
             }
